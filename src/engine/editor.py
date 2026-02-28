@@ -164,15 +164,8 @@ class EditorEngine:
 
             img_clip = ImageClip(np.array(pil_img)).with_duration(duration)
 
-            # ── Text overlay ──
-            layer_clips = [img_clip]
-            if overlay_text:
-                txt_arr = self._create_text_overlay(overlay_text)
-                txt_clip = ImageClip(txt_arr).with_duration(duration)
-                layer_clips.append(txt_clip)
-
-            composite = CompositeVideoClip(layer_clips, size=(CANVAS_W, CANVAS_H))
-            composite = composite.with_duration(duration)
+            # Note: overlay text removed — user adds subtitles in DaVinci Resolve
+            composite = img_clip
 
             # ── Narration audio ──
             if nar_info and nar_info["path"].exists():

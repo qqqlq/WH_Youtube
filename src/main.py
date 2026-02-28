@@ -115,6 +115,70 @@ def main():
     except Exception as e:
         print(f"[ERROR] Editing failed: {e}")
 
+    # ── 5. SOURCE REPORT ──
+    print("\n[REPORT] Generating source report...")
+    try:
+        _generate_source_report(project_dir, assets_dir, script)
+        print(f"[OK] Source report saved to {project_dir / 'sources.md'}")
+    except Exception as e:
+        print(f"[WARN] Source report failed: {e}")
+
+
+def _generate_source_report(project_dir: Path, assets_dir: Path, script_data: dict):
+    """Generate a Markdown report documenting the source of each image."""
+    lines = [
+        f"# 素材ソースレポート",
+        f"",
+        f"**トピック:** {script_data.get('title', 'N/A')}",
+        f"",
+        f"| シーン | 検索クエリ | 提供元 | 撮影者 | ライセンス | ソースURL |",
+        f"|--------|-----------|--------|--------|-----------|----------|",
+    ]
+
+    for scene in script_data.get("scenes", []):
+        scene_id = scene.get("id")
+        meta_path = assets_dir / f"scene_{scene_id:02d}_meta.json"
+
+        if meta_path.exists():
+            with open(meta_path, "r", encoding="utf-8") as f:
+                meta = json.load(f)
+            query = meta.get("query", "N/A")
+            provider = meta.get("provider", "不明")
+            photographer = meta.get("photographer", "不明")
+            license_info = meta.get("license", "不明")
+            source_url = meta.get("source_url", "")
+            url_link = f"[Link]({source_url})" if source_url else "N/A"
+        else:
+            query = scene.get("visual_query", "N/A")
+            provider = "N/A"
+            photographer = "N/A"
+            license_info = "N/A"
+            url_link = "N/A"
+
+        lines.append(
+            f"| {scene_id:02d} | {query} | {provider} | {photographer} | {license_info} | {url_link} |"
+        )
+
+    lines.extend([
+        "",
+        "---",
+        "",
+        "## ナレーションテキスト（字幕参考用）",
+        "",
+        "| シーン | ナレーション | オーバーレイテキスト |",
+        "|--------|------------|-------------------|",
+    ])
+
+    for scene in script_data.get("scenes", []):
+        sid = scene.get("id")
+        narr = scene.get("narration", "")
+        overlay = scene.get("overlay_text", "")
+        lines.append(f"| {sid:02d} | {narr} | {overlay} |")
+
+    report_path = project_dir / "sources.md"
+    with open(report_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+
 
 if __name__ == "__main__":
     main()
