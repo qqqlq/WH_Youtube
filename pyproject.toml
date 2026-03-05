@@ -1,0 +1,36 @@
+[project]
+name = "antigravity-video-automation"
+version = "0.1.0"
+description = "Automated YouTube Shorts generator pipeline powered by Gemini & MoviePy"
+readme = "REQUIREMENTS.md"
+requires-python = ">=3.11"
+dependencies = [
+    # Core Logic
+    "google-generativeai>=0.3.0",  # Gemini API
+    "python-dotenv>=1.0.0",        # Environment variables
+    
+    # Video Generation
+    "moviepy>=2.0.0.dev0",         # Context: v2.0 preview requested for better performance
+    "pillow>=10.0.0",              # Image processing
+    # "numpy<2.0.0",                 # Pinning for stability with moviepy/pandas
+    
+    # TTS Narration
+    "gTTS>=2.3.0",                  # Google Text-to-Speech (free)
+    "mutagen>=1.47.0",              # Audio metadata (MP3 duration)
+    
+    # Web Server
+    "fastapi>=0.104.0",             # API framework
+    "uvicorn[standard]>=0.24.0",    # ASGI server
+    "python-multipart>=0.0.6",      # Form data parsing
+    
+    # Utilities
+    "pydantic>=2.0.0",             # Data validation for Agent outputs (JSON)
+    "requests>=2.31.0",            # Simple HTTP requests
+]
+
+[tool.setuptools]
+packages = ["src"]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
