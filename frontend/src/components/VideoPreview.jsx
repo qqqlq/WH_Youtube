@@ -4,6 +4,7 @@ import { renderVideo } from '../api'
 export default function VideoPreview({ script, renderResult, setRenderResult }) {
     const [rendering, setRendering] = useState(false)
     const [error, setError] = useState(null)
+    const [engine, setEngine] = useState('voicevox')
 
     const handleRender = async () => {
         if (!script || rendering) return
@@ -11,7 +12,7 @@ export default function VideoPreview({ script, renderResult, setRenderResult }) 
         setError(null)
 
         try {
-            const result = await renderVideo(script)
+            const result = await renderVideo({ ...script, engine })
             setRenderResult(result)
         } catch (err) {
             setError(err.message)
@@ -31,6 +32,19 @@ export default function VideoPreview({ script, renderResult, setRenderResult }) 
                     <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 8 }}>
                         通常 2〜5 分かかります。
                     </p>
+
+                    <div style={{ marginTop: 24, marginBottom: 8 }}>
+                        <label style={{ marginRight: 12, fontSize: 14, fontWeight: 'bold' }}>🗣️ ナレーター音声:</label>
+                        <select
+                            value={engine}
+                            onChange={(e) => setEngine(e.target.value)}
+                            style={{ padding: '8px 12px', borderRadius: 4, border: '1px solid #ccc', fontSize: 14 }}
+                        >
+                            <option value="voicevox">VOICEVOX (ずんだもん・高品質)</option>
+                            <option value="gtts">Google TTS (機械音声・標準)</option>
+                        </select>
+                    </div>
+
                     <button
                         className="btn btn-primary"
                         onClick={handleRender}

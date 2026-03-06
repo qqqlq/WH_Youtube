@@ -18,7 +18,7 @@ def slugify(text: str) -> str:
     return text[:80]
 
 
-def run_pipeline(script_data: dict) -> dict:
+def run_pipeline(script_data: dict, engine: str = "gtts") -> dict:
     """
     Run the full video generation pipeline.
     Returns a dict with status, video_url, project_slug, and sources.
@@ -44,7 +44,7 @@ def run_pipeline(script_data: dict) -> dict:
         collector.collect(scene.get("visual_query", ""), scene.get("id"))
 
     # ── 2. NARRATE ──
-    narrator = NarratorEngine(narration_dir=str(narration_dir))
+    narrator = NarratorEngine(narration_dir=str(narration_dir), engine=engine)
     narration_map = narrator.generate_all(script_data)
 
     # ── 3. EDIT ──

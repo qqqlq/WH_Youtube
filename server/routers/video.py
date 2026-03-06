@@ -22,6 +22,7 @@ class SceneInput(BaseModel):
 class RenderRequest(BaseModel):
     title: str
     scenes: List[SceneInput]
+    engine: str = "gtts"
 
 
 class SourceInfo(BaseModel):
@@ -47,7 +48,7 @@ async def render_video(req: RenderRequest):
             "title": req.title,
             "scenes": [s.model_dump() for s in req.scenes],
         }
-        result = run_pipeline(script_data)
+        result = run_pipeline(script_data, engine=req.engine)
         return RenderResponse(**result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
