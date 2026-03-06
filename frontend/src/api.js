@@ -1,4 +1,4 @@
-const API_BASE = '';  // Vite proxy handles /api → localhost:8000
+const API_BASE = import.meta.env.VITE_API_BASE || '';  // dev: Vite proxy, prod: Cloudflare Tunnel URL
 
 export async function sendChat(messages) {
     const res = await fetch(`${API_BASE}/api/chat`, {
