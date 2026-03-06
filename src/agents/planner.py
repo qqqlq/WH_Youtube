@@ -1,6 +1,7 @@
 import os
 import json
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from pydantic import BaseModel, Field
 from typing import List
 from dotenv import load_dotenv
@@ -23,11 +24,9 @@ class PlannerAgent:
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
             print("Warning: GEMINI_API_KEY not found in environment variables.")
-        else:
-            genai.configure(api_key=api_key)
-            # Use gemini-flash-latest for broader compatibility/quota
-            self.model = genai.GenerativeModel('gemini-flash-latest',
-                                               generation_config={"response_mime_type": "application/json"})
+        
+        self.client = genai.Client(api_key=api_key) if api_key else genai.Client()
+        self.model_name = os.getenv("GEMINI_MODEL_NAME", "gemini-2.5-flash")
 
     def generate_script(self, topic: str) -> dict:
         """
@@ -62,7 +61,14 @@ class PlannerAgent:
         """
         
         try:
-            response = self.model.generate_content(prompt)
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=VideoScript,
+                ),
+            )
             # Parse JSON
             script_data = json.loads(response.text)
             return script_data
