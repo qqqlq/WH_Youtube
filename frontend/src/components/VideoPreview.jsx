@@ -1,25 +1,68 @@
-import { useState } from 'react'
-import { renderVideo } from '../api'
+import { useState, useEffect } from 'react'
+import { renderVideo, checkRenderStatus } from '../api'
 
 export default function VideoPreview({ script, renderResult, setRenderResult }) {
     const [rendering, setRendering] = useState(false)
     const [error, setError] = useState(null)
     const [engine, setEngine] = useState('voicevox')
 
+    const [pollTimer, setPollTimer] = useState(null)
+    const [statusMessage, setStatusMessage] = useState("")
+
+    // 進行中のジョブをポーリングで監視
+    const startPolling = (jobId) => {
+        const timer = setInterval(async () => {
+            try {
+                const job = await checkRenderStatus(jobId);
+                setStatusMessage(job.message || "処理中...");
+
+                if (job.status === "completed") {
+                    clearInterval(timer);
+                    setRendering(false);
+                    setRenderResult(job.result);
+                } else if (job.status === "failed") {
+                    clearInterval(timer);
+                    setRendering(false);
+                    setError(job.message || "動画生成中にエラーが発生しました。");
+                }
+            } catch (err) {
+                console.error("Polling error:", err);
+                clearInterval(timer);
+                setRendering(false);
+                setError("サーバーとの通信が切断されました。");
+            }
+        }, 3000); // 3秒おき
+        setPollTimer(timer);
+    };
+
     const handleRender = async () => {
         if (!script || rendering) return
         setRendering(true)
         setError(null)
+        setStatusMessage("準備中...")
 
         try {
-            const result = await renderVideo({ ...script, engine })
-            setRenderResult(result)
+            const startResp = await renderVideo({ ...script, engine })
+            // バックグラウンドでジョブが開始されたら、ポーリング開始
+            if (startResp.job_id) {
+                startPolling(startResp.job_id)
+            } else {
+                // fallback if instant return
+                setRendering(false)
+                setRenderResult(startResp)
+            }
         } catch (err) {
-            setError(err.message)
-        } finally {
             setRendering(false)
+            setError("ジョブの開始に失敗: " + err.message)
         }
     }
+
+    // クリーンアップ
+    useEffect(() => {
+        return () => {
+            if (pollTimer) clearInterval(pollTimer);
+        }
+    }, [pollTimer]);
 
     return (
         <div className="preview-container">
@@ -61,7 +104,7 @@ export default function VideoPreview({ script, renderResult, setRenderResult }) 
                     <div className="spinner" />
                     <p>動画を生成中...</p>
                     <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
-                        素材収集 → ナレーション → 編集 を実行しています
+                        {statusMessage}
                     </p>
                 </div>
             )}

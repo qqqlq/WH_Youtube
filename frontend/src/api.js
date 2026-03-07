@@ -29,3 +29,9 @@ export async function renderVideo(scriptData) {
     if (!res.ok) throw new Error(await res.text());
     return res.json();
 }
+
+export async function checkRenderStatus(jobId) {
+    const res = await fetch(`${API_BASE}/api/render_status/${jobId}`);
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+}
