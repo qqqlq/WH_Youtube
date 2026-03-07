@@ -14,7 +14,7 @@ load_dotenv()
 # Ensure src/ is importable
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from server.routers import chat, script, video
+from server.routers import chat, script, video, projects
 
 app = FastAPI(
     title="AVAP — Video Automation Pipeline",
@@ -42,6 +42,7 @@ app.add_middleware(
 app.include_router(chat.router, prefix="/api")
 app.include_router(script.router, prefix="/api")
 app.include_router(video.router, prefix="/api")
+app.include_router(projects.router, prefix="/api")
 
 # ── Static file serving for generated outputs ──
 WORKSPACE = Path(__file__).resolve().parent.parent / "workspace" / "projects"

@@ -35,3 +35,15 @@ export async function checkRenderStatus(jobId) {
     if (!res.ok) throw new Error(await res.text());
     return res.json();
 }
+
+export async function fetchProjects() {
+    const res = await fetch(`${API_BASE}/api/projects`);
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+}
+
+export async function fetchProjectData(slug) {
+    const res = await fetch(`${API_BASE}/api/projects/${slug}`);
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+}
