@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { renderVideo, checkRenderStatus } from '../api'
+import { renderVideo, checkRenderStatus, API_BASE } from '../api'
 
 export default function VideoPreview({ script, renderResult, setRenderResult }) {
     const [rendering, setRendering] = useState(false)
@@ -131,14 +131,14 @@ export default function VideoPreview({ script, renderResult, setRenderResult }) 
                     <div className="video-player-wrap">
                         <video
                             controls
-                            src={renderResult.video_url}
+                            src={renderResult.video_url.startsWith('http') ? renderResult.video_url : `${API_BASE}${renderResult.video_url}`}
                             style={{ width: '100%' }}
                         />
                     </div>
 
                     <div style={{ textAlign: 'center' }}>
                         <a
-                            href={renderResult.video_url}
+                            href={renderResult.video_url.startsWith('http') ? renderResult.video_url : `${API_BASE}${renderResult.video_url}`}
                             download
                             className="btn btn-success"
                         >
