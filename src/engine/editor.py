@@ -133,40 +133,63 @@ class EditorEngine:
                     continue
         return ImageFont.load_default()
 
+    @staticmethod
+    def _load_font_bold(size: int = 72) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+        """Load a bold Japanese font for telop/subtitles."""
+        candidates = [
+            "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
+            "/usr/share/fonts/noto-cjk/NotoSansCJK-Bold.ttc",
+            "/usr/share/fonts/google-noto-cjk/NotoSansCJKjp-Bold.otf",
+            "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+            "/System/Library/Fonts/ヒラギノ角ゴシック W6.ttc",
+            "C:/Windows/Fonts/meiryo.ttc",
+        ]
+        for path in candidates:
+            if os.path.exists(path):
+                try:
+                    return ImageFont.truetype(path, size)
+                except Exception:
+                    continue
+        return ImageFont.load_default()
+
     # ------------------------------------------------------------------ #
     #  Text overlay
     # ------------------------------------------------------------------ #
     def _create_text_overlay(self, text: str, size=(CANVAS_W, CANVAS_H)) -> np.ndarray:
-        """Create RGBA text image for overlay (bottom-center subtitle)."""
+        """
+        Create RGBA text image for overlay.
+        YouTube Shorts style: white bold text with black outline,
+        positioned at center-bottom of the screen.
+        """
         img = Image.new("RGBA", size, (0, 0, 0, 0))
         draw = ImageDraw.Draw(img)
+        font = self._load_font_bold(72)
 
-        # Word-wrap for long text
-        max_chars_per_line = 14
+        # Word-wrap for long text (roughly 12 chars per line for 1080px)
+        max_chars_per_line = 12
         lines = []
         while text:
             lines.append(text[:max_chars_per_line])
             text = text[max_chars_per_line:]
-
         wrapped = "\n".join(lines)
 
-        # Position near bottom
-        bbox = draw.textbbox((0, 0), wrapped, font=self._font)
+        # Measure text
+        bbox = draw.textbbox((0, 0), wrapped, font=font)
         text_w = bbox[2] - bbox[0]
         text_h = bbox[3] - bbox[1]
         x = (size[0] - text_w) // 2
-        y = size[1] - text_h - 200
+        # Position at ~60% from top (center-bottom area, above the UI elements)
+        y = int(size[1] * 0.55) - text_h // 2
 
-        # Semi-transparent background bar
-        pad = 20
-        draw.rectangle(
-            [x - pad, y - pad, x + text_w + pad, y + text_h + pad],
-            fill=(0, 0, 0, 160),
-        )
+        # Black outline (stroke) for readability
+        outline_width = 4
+        for ox in range(-outline_width, outline_width + 1):
+            for oy in range(-outline_width, outline_width + 1):
+                if ox * ox + oy * oy <= outline_width * outline_width:
+                    draw.text((x + ox, y + oy), wrapped, font=font, fill=(0, 0, 0, 220))
 
-        # Shadow + text
-        draw.text((x + 2, y + 2), wrapped, font=self._font, fill=(0, 0, 0, 200))
-        draw.text((x, y), wrapped, font=self._font, fill="white")
+        # White text on top
+        draw.text((x, y), wrapped, font=font, fill=(255, 255, 255, 255))
 
         return np.array(img)
 
@@ -223,8 +246,14 @@ class EditorEngine:
 
             img_clip = ImageClip(np.array(pil_img)).with_duration(duration)
 
-            # Note: overlay text removed — user adds subtitles in DaVinci Resolve
-            composite = img_clip
+            # ── Telop (narration subtitle overlay) ──
+            narration_text = scene.get("narration", "")
+            if narration_text:
+                overlay_arr = self._create_text_overlay(narration_text)
+                overlay_clip = ImageClip(overlay_arr).with_duration(duration)
+                composite = CompositeVideoClip([img_clip, overlay_clip])
+            else:
+                composite = img_clip
 
             # ── Audio Compositing Preparation ──
             scene_audio_clips = []
