@@ -8,6 +8,7 @@ export default function VideoPreview({ script, renderResult, setRenderResult }) 
 
     const [pollTimer, setPollTimer] = useState(null)
     const [statusMessage, setStatusMessage] = useState("")
+    const [progress, setProgress] = useState(0)
 
     // 進行中のジョブをポーリングで監視
     const startPolling = (jobId) => {
@@ -15,10 +16,12 @@ export default function VideoPreview({ script, renderResult, setRenderResult }) 
             try {
                 const job = await checkRenderStatus(jobId);
                 setStatusMessage(job.message || "処理中...");
+                setProgress(job.progress || 0);
 
                 if (job.status === "completed") {
                     clearInterval(timer);
                     setRendering(false);
+                    setProgress(100);
                     setRenderResult(job.result);
                 } else if (job.status === "failed") {
                     clearInterval(timer);
@@ -40,6 +43,7 @@ export default function VideoPreview({ script, renderResult, setRenderResult }) 
         setRendering(true)
         setError(null)
         setStatusMessage("準備中...")
+        setProgress(0)
 
         try {
             const startResp = await renderVideo({ ...script, engine })
@@ -102,10 +106,40 @@ export default function VideoPreview({ script, renderResult, setRenderResult }) 
             {rendering && (
                 <div className="render-status">
                     <div className="spinner" />
-                    <p>動画を生成中...</p>
+                    <p style={{ fontWeight: 'bold', fontSize: 16 }}>動画を生成中...</p>
                     <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
                         {statusMessage}
                     </p>
+
+                    {/* Progress bar */}
+                    <div style={{
+                        width: '100%', maxWidth: '400px', margin: '16px auto 0',
+                        background: 'var(--bg-secondary, #333)',
+                        borderRadius: '8px', overflow: 'hidden', height: '24px',
+                        position: 'relative'
+                    }}>
+                        <div style={{
+                            width: `${progress}%`,
+                            height: '100%',
+                            background: 'linear-gradient(90deg, var(--primary, #6c5ce7), #a29bfe)',
+                            backgroundSize: '30px 30px',
+                            backgroundImage: `repeating-linear-gradient(
+                                45deg,
+                                transparent, transparent 10px,
+                                rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px
+                            )`,
+                            transition: 'width 0.5s ease',
+                            animation: 'stripes 1s linear infinite'
+                        }} />
+                        <span style={{
+                            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '12px', fontWeight: 'bold', color: '#fff',
+                            textShadow: '0 1px 2px rgba(0,0,0,0.5)'
+                        }}>
+                            {progress}%
+                        </span>
+                    </div>
                 </div>
             )}
 

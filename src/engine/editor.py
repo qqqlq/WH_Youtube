@@ -21,6 +21,54 @@ class EditorEngine:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self._font = self._load_font()
+        # Global audio assets directory (shared across all projects)
+        self.global_assets = Path("workspace/assets")
+        self._audio_catalog = self._load_audio_catalog()
+
+    def _load_audio_catalog(self) -> dict:
+        """Load audio_catalog.json that maps keywords to real filenames."""
+        catalog_path = self.global_assets / "audio_catalog.json"
+        if catalog_path.exists():
+            import json
+            with open(catalog_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        return {"bgm": {}, "se": {}}
+
+    def _resolve_bgm(self, keyword: str) -> Path | None:
+        """Resolve a BGM keyword to an actual file path using the catalog."""
+        bgm_dir = self.global_assets / "bgm"
+        # 1. Check catalog mapping
+        filename = self._audio_catalog.get("bgm", {}).get(keyword)
+        if filename:
+            p = bgm_dir / filename
+            if p.exists():
+                return p
+        # 2. Fallback: try keyword.mp3 directly
+        p = bgm_dir / f"{keyword}.mp3"
+        if p.exists():
+            return p
+        # 3. Fallback: pick the first mp3 in the bgm dir
+        if bgm_dir.exists():
+            mp3s = list(bgm_dir.glob("*.mp3"))
+            if mp3s:
+                print(f"  BGM fallback: using {mp3s[0].name}")
+                return mp3s[0]
+        return None
+
+    def _resolve_se(self, keyword: str) -> Path | None:
+        """Resolve an SE keyword to an actual file path using the catalog."""
+        se_dir = self.global_assets / "se"
+        # 1. Check catalog mapping
+        filename = self._audio_catalog.get("se", {}).get(keyword)
+        if filename:
+            p = se_dir / filename
+            if p.exists():
+                return p
+        # 2. Fallback: try keyword.mp3 directly
+        p = se_dir / f"{keyword}.mp3"
+        if p.exists():
+            return p
+        return None
 
     # ------------------------------------------------------------------ #
     #  Image pre-processing  (fixes the tiling / wrapping issue)
@@ -190,12 +238,12 @@ class EditorEngine:
             # 2. Sound Effect
             se_keyword = scene.get("sound_effect", "")
             if se_keyword:
-                se_path = self.assets_dir / "se" / f"{se_keyword}.mp3"
-                if se_path.exists():
+                se_path = self._resolve_se(se_keyword)
+                if se_path and se_path.exists():
                     se_audio = AudioFileClip(str(se_path)).with_start(current_time).with_effects([afx.MultiplyVolume(0.8)])
                     scene_audio_clips.append(se_audio)
                 else:
-                    print(f"  Warning: SE {se_path} not found.")
+                    print(f"  Warning: SE '{se_keyword}' not found.")
 
             audio_clips.extend(scene_audio_clips)
 
@@ -219,14 +267,14 @@ class EditorEngine:
 
         # ── Global BGM ──
         bgm_keyword = script_data.get("bgm_keyword", "lofi")
-        bgm_path = self.assets_dir / "bgm" / f"{bgm_keyword}.mp3"
+        bgm_path = self._resolve_bgm(bgm_keyword)
         
-        if bgm_path.exists():
-            print(f"Applying BGM: {bgm_keyword}")
+        if bgm_path and bgm_path.exists():
+            print(f"Applying BGM: {bgm_keyword} -> {bgm_path}")
             bgm = AudioFileClip(str(bgm_path)).with_effects([afx.AudioLoop(duration=final.duration), afx.MultiplyVolume(0.15)])
             audio_clips.insert(0, bgm)
         else:
-            print(f"Warning: BGM {bgm_path} not found.")
+            print(f"Warning: BGM for keyword '{bgm_keyword}' not found.")
 
         # If we collected discrete audio tracks, mix them
         if audio_clips:

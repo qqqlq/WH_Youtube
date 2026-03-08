@@ -18,11 +18,18 @@ def slugify(text: str) -> str:
     return text[:80]
 
 
-def run_pipeline(script_data: dict, engine: str = "gtts") -> dict:
+def run_pipeline(script_data: dict, engine: str = "gtts", job_id: str = None) -> dict:
     """
     Run the full video generation pipeline.
     Returns a dict with status, video_url, project_slug, and sources.
     """
+    from server.services.jobs import update_job
+
+    def progress(msg: str, pct: int = 0):
+        if job_id:
+            update_job(job_id, status="processing", message=msg, progress=pct)
+        print(f"  [{pct}%] {msg}")
+
     title = script_data.get("title", "untitled")
     slug = slugify(title)
     project_dir = Path("workspace/projects") / slug
@@ -38,16 +45,25 @@ def run_pipeline(script_data: dict, engine: str = "gtts") -> dict:
     with open(script_path, "w", encoding="utf-8") as f:
         json.dump(script_data, f, indent=2, ensure_ascii=False)
 
+    scenes = script_data.get("scenes", [])
+    total_scenes = len(scenes)
+
     # ── 1. COLLECT ──
+    progress("素材を収集中...", 5)
     collector = CollectorAgent(assets_dir=str(assets_dir))
-    for scene in script_data.get("scenes", []):
+    for idx, scene in enumerate(scenes):
+        pct = 5 + int((idx / max(total_scenes, 1)) * 25)
+        progress(f"素材を収集中... ({idx+1}/{total_scenes})", pct)
         collector.collect(scene.get("visual_query", ""), scene.get("id"))
 
     # ── 2. NARRATE ──
+    progress("ナレーション音声を生成中...", 35)
     narrator = NarratorEngine(narration_dir=str(narration_dir), engine=engine)
     narration_map = narrator.generate_all(script_data)
+    progress("ナレーション音声の生成が完了しました", 60)
 
     # ── 3. EDIT ──
+    progress("動画を合成中... (トランジション・BGM・SE)", 65)
     editor = EditorEngine(
         assets_dir=str(assets_dir),
         output_dir=str(output_dir),
@@ -57,6 +73,7 @@ def run_pipeline(script_data: dict, engine: str = "gtts") -> dict:
         output_filename="final.mp4",
         narration_map=narration_map,
     )
+    progress("動画の書き出しが完了しました", 95)
 
     # ── 4. Collect source info ──
     sources = []

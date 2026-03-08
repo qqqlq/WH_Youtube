@@ -13,7 +13,6 @@ class Scene(BaseModel):
     character: str = Field(default="zundamon", description="Character ID for narration (e.g., 'zundamon', 'metan', 'tsumugi')")
     narration: str = Field(..., description="Voiceover narration text for this scene (Japanese)")
     sound_effect: str = Field(default="", description="Sound effect keyword (e.g., 'pop', 'whoosh', 'impact', or empty string if none)")
-    sound_effect: str = Field(default="", description="Sound effect keyword (e.g., 'pop', 'whoosh', 'impact', or empty string if none)")
     visual_query: str = Field(..., description="Basic English search query for stock photos (e.g., 'snowy village')")
     image_prompt_en: str = Field(..., description="Detailed English prompt for high-quality AI image generation (Midjourney/Leonardo style) describing lighting, mood, camera angle, and subject. MUST EXPLICITLY avoid generating any text/letters in the image.")
     overlay_text: str = Field(..., description="Short, punchy text to display on screen (Japanese)")

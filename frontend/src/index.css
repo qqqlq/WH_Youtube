@@ -471,6 +471,11 @@ body {
     }
 }
 
+@keyframes stripes {
+    0% { background-position: 0 0; }
+    100% { background-position: 30px 0; }
+}
+
 .render-status p {
     color: var(--text-secondary);
     font-size: 14px;

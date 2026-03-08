@@ -12,16 +12,19 @@ def create_job() -> str:
     _jobs[job_id] = {
         "status": "pending",
         "message": "Job created, waiting to start...",
+        "progress": 0,
         "result": None
     }
     return job_id
 
-def update_job(job_id: str, status: str, message: str = "", result: dict = None):
+def update_job(job_id: str, status: str, message: str = "", result: dict = None, progress: int = None):
     """Update the status of an existing job."""
     if job_id in _jobs:
         _jobs[job_id]["status"] = status
         if message:
             _jobs[job_id]["message"] = message
+        if progress is not None:
+            _jobs[job_id]["progress"] = progress
         if result is not None:
             _jobs[job_id]["result"] = result
 
