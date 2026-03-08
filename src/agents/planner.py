@@ -15,7 +15,7 @@ class Scene(BaseModel):
     sound_effect: str = Field(default="", description="Sound effect keyword (e.g., 'pop', 'whoosh', 'impact', or empty string if none)")
     visual_query: str = Field(..., description="Basic English search query for stock photos (e.g., 'snowy village')")
     image_prompt_en: str = Field(..., description="Detailed English prompt for high-quality AI image generation (Midjourney/Leonardo style) describing lighting, mood, camera angle, and subject. MUST EXPLICITLY avoid generating any text/letters in the image.")
-    overlay_text: str = Field(..., description="Short, punchy text to display on screen (Japanese)")
+    overlay_text: str = Field(..., description="Short, punchy text to display on screen (Japanese). Wrap the most impactful keyword(s) in **double asterisks** for color highlight, e.g., '**異世界転生** まじ卍'")
 
 class VideoScript(BaseModel):
     title: str = Field(..., description="Title of the YouTube Short")

@@ -158,38 +158,79 @@ class EditorEngine:
     def _create_text_overlay(self, text: str, size=(CANVAS_W, CANVAS_H)) -> np.ndarray:
         """
         Create RGBA text image for overlay.
-        YouTube Shorts style: white bold text with black outline,
-        positioned at center-bottom of the screen.
+        YouTube Shorts style: white bold text with black outline.
+        Words wrapped in **double asterisks** are rendered in accent color (yellow).
         """
+        import re
+
         img = Image.new("RGBA", size, (0, 0, 0, 0))
         draw = ImageDraw.Draw(img)
         font = self._load_font_bold(52)
 
-        # Word-wrap for long text
-        max_chars_per_line = 16
-        lines = []
-        while text:
-            lines.append(text[:max_chars_per_line])
-            text = text[max_chars_per_line:]
-        wrapped = "\n".join(lines)
-
-        # Measure text
-        bbox = draw.textbbox((0, 0), wrapped, font=font)
-        text_w = bbox[2] - bbox[0]
-        text_h = bbox[3] - bbox[1]
-        x = (size[0] - text_w) // 2
-        # Position at ~68% from top (lower-center area, like YouTube Shorts subtitles)
-        y = int(size[1] * 0.68) - text_h // 2
-
-        # Black outline (stroke) for readability
+        COLOR_NORMAL = (255, 255, 255, 255)
+        COLOR_HIGHLIGHT = (255, 230, 50, 255)   # Yellow accent
+        COLOR_OUTLINE = (0, 0, 0, 220)
         outline_width = 4
-        for ox in range(-outline_width, outline_width + 1):
-            for oy in range(-outline_width, outline_width + 1):
-                if ox * ox + oy * oy <= outline_width * outline_width:
-                    draw.text((x + ox, y + oy), wrapped, font=font, fill=(0, 0, 0, 220))
 
-        # White text on top
-        draw.text((x, y), wrapped, font=font, fill=(255, 255, 255, 255))
+        # Parse **highlight** markers into segments: [(text, is_highlight), ...]
+        segments = []
+        pattern = re.compile(r'\*\*(.+?)\*\*')
+        last_end = 0
+        for m in pattern.finditer(text):
+            if m.start() > last_end:
+                segments.append((text[last_end:m.start()], False))
+            segments.append((m.group(1), True))
+            last_end = m.end()
+        if last_end < len(text):
+            segments.append((text[last_end:], False))
+        if not segments:
+            segments = [(text, False)]
+
+        # Build plain text (no markers) for layout measurement
+        plain = "".join(s[0] for s in segments)
+
+        # Word-wrap
+        max_chars = 16
+        lines_raw = []
+        while plain:
+            lines_raw.append(plain[:max_chars])
+            plain = plain[max_chars:]
+
+        # Measure total block height for vertical centering
+        line_height = font.size + 12  # approx line spacing
+        total_h = line_height * len(lines_raw)
+        base_y = int(size[1] * 0.68) - total_h // 2
+
+        # Flatten segments into a char-level color list
+        char_colors = []
+        for seg_text, is_hl in segments:
+            for ch in seg_text:
+                char_colors.append(COLOR_HIGHLIGHT if is_hl else COLOR_NORMAL)
+
+        # Draw line by line
+        char_idx = 0
+        for line_num, line_text in enumerate(lines_raw):
+            # Center this line horizontally
+            line_bbox = draw.textbbox((0, 0), line_text, font=font)
+            line_w = line_bbox[2] - line_bbox[0]
+            cx = (size[0] - line_w) // 2
+            cy = base_y + line_num * line_height
+
+            # Draw each character with its color
+            cur_x = cx
+            for ch in line_text:
+                color = char_colors[char_idx] if char_idx < len(char_colors) else COLOR_NORMAL
+                # Outline
+                for ox in range(-outline_width, outline_width + 1):
+                    for oy in range(-outline_width, outline_width + 1):
+                        if ox * ox + oy * oy <= outline_width * outline_width:
+                            draw.text((cur_x + ox, cy + oy), ch, font=font, fill=COLOR_OUTLINE)
+                # Colored text
+                draw.text((cur_x, cy), ch, font=font, fill=color)
+                # Advance x
+                ch_bbox = draw.textbbox((0, 0), ch, font=font)
+                cur_x += ch_bbox[2] - ch_bbox[0]
+                char_idx += 1
 
         return np.array(img)
 
