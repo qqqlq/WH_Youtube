@@ -77,14 +77,14 @@ export default function VideoPreview({ script, renderResult, setRenderResult }) 
                     </p>
 
                     <div style={{ marginTop: 24, marginBottom: 8 }}>
-                        <label style={{ marginRight: 12, fontSize: 14, fontWeight: 'bold' }}>🗣️ ナレーター音声:</label>
+                        <label style={{ marginRight: 12, fontSize: 14, fontWeight: 'bold' }}>🗣️ ナレーター音声方式:</label>
                         <select
                             value={engine}
                             onChange={(e) => setEngine(e.target.value)}
                             style={{ padding: '8px 12px', borderRadius: 4, border: '1px solid #ccc', fontSize: 14 }}
                         >
-                            <option value="voicevox">VOICEVOX (ずんだもん・高品質)</option>
-                            <option value="gtts">Google TTS (機械音声・標準)</option>
+                            <option value="voicevox">VOICEVOX (高品質・キャラ指定有効)</option>
+                            <option value="gtts">Google TTS (標準・機械音声・キャラ指定無効)</option>
                         </select>
                     </div>
 
