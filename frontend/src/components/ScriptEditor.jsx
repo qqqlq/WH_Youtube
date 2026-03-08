@@ -76,7 +76,7 @@ export default function ScriptEditor({ script, setScript, onConfirm }) {
                         placeholder="動画タイトル"
                         style={{ display: 'block', marginBottom: '8px', width: '300px' }}
                     />
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                         <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>🎵 BGM:</span>
                         <select
                             className="field-input"
@@ -90,6 +90,24 @@ export default function ScriptEditor({ script, setScript, onConfirm }) {
                             <option value="upbeat">upbeat (明るい)</option>
                             <option value="horror">horror (ホラー)</option>
                             <option value="comical">comical (コミカル)</option>
+                        </select>
+
+                        <span style={{ fontSize: '14px', color: 'var(--text-muted)', marginLeft: '8px' }}>🗣 キャラ一括:</span>
+                        <select
+                            className="field-input"
+                            style={{ width: 'auto', padding: '4px 8px' }}
+                            value=""
+                            onChange={(e) => {
+                                if (!e.target.value) return
+                                const updated = script.scenes.map(s => ({ ...s, character: e.target.value }))
+                                setScript({ ...script, scenes: updated })
+                                e.target.value = ""
+                            }}
+                        >
+                            <option value="">-- 選択で全シーン変更 --</option>
+                            <option value="zundamon">ずんだもん</option>
+                            <option value="metan">四国めたん</option>
+                            <option value="tsumugi">春日部つむぎ</option>
                         </select>
                     </div>
                 </div>

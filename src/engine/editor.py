@@ -178,8 +178,8 @@ class EditorEngine:
         text_w = bbox[2] - bbox[0]
         text_h = bbox[3] - bbox[1]
         x = (size[0] - text_w) // 2
-        # Position at ~60% from top (center-bottom area, above the UI elements)
-        y = int(size[1] * 0.55) - text_h // 2
+        # Position at ~68% from top (lower-center area, like YouTube Shorts subtitles)
+        y = int(size[1] * 0.68) - text_h // 2
 
         # Black outline (stroke) for readability
         outline_width = 4
