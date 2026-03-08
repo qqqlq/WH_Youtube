@@ -64,6 +64,17 @@ python src/main.py "Los Glaciares National Park"
 
 ## チェンジログ
 
+### v0.5.0 — 2026-03-07
+- **Vercel デプロイ対応とタイムアウト回避**
+  - フロントエンドをVercelへデプロイできるようCORS設定および環境変数（`VITE_API_BASE`）を整備
+  - Vercel/Cloudflareの100秒タイムアウト制限を回避するため、FastAPIに非同期ジョブ管理（`BackgroundTasks`）を導入し、動画生成APIをポーリング方式（`render_status`）に全面刷新
+- **VOICEVOX（ずんだもん）エンジンの統合**
+  - 高品質なナレーション生成のため、Docker経由でVOICEVOX APIを連携（Phase B）
+  - フロントエンドにナレーション音声（VOICEVOX / gTTS）の選択ドロップダウンを追加
+- **Gemini SDK移行**
+  - 廃止予定の `google-generativeai` から公式の最新 `google-genai` SDK へ完全移行（Phase C）
+  - Cloudflare Tunnelを前提としたインフラガイド (`docs/infrastructure_setup_guide.md`) などのドキュメントを拡充
+
 ### v0.4.0 — 2026-03-01
 - **Web アプリケーション化 (MVP)**
 - FastAPI バックエンド (`server/`): チャット・台本生成・動画レンダリング API

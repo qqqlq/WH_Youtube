@@ -11,7 +11,8 @@ class Scene(BaseModel):
     id: int = Field(..., description="Sequential ID of the scene")
     duration: int = Field(..., description="Duration of the scene in seconds (usually 3-5s)")
     narration: str = Field(..., description="Voiceover narration text for this scene (Japanese)")
-    visual_query: str = Field(..., description="Specific English search query to find a stock photo/video for this scene")
+    visual_query: str = Field(..., description="Basic English search query for stock photos (e.g., 'snowy village')")
+    image_prompt_en: str = Field(..., description="Detailed English prompt for high-quality AI image generation (Midjourney/Leonardo style) describing lighting, mood, camera angle, and subject.")
     overlay_text: str = Field(..., description="Short, punchy text to display on screen (Japanese)")
 
 class VideoScript(BaseModel):
@@ -41,9 +42,10 @@ class PlannerAgent:
         Requirements:
         1. **Total Duration:** Must be approx 60 seconds.
         2. **Structure:** Divide into scenes (approx 3-5 seconds each, total ~10-15 scenes).
-        3. **Visuals:** 'visual_query' must be a specific English search term for stock photos (e.g., "glacier calving close up 4k wallpaper").
-        4. **Narration:** Engaging, informative, and coherent (Japanese).
-        5. **Overlay:** Short, impactful keywords (Japanese).
+        3. **Visuals (Stock):** 'visual_query' is a short English keyword for free stock sites.
+        4. **Visuals (AI):: 'image_prompt_en' is a detailed, rich English prompt (e.g., "A moody cinematic wide shot of a glacier calving, 4k, photorealistic, dramatic lighting") for Midjourney/Leonardo.
+        5. **Narration:** Engaging, informative, and coherent (Japanese).
+        6. **Overlay:** Short, impactful keywords (Japanese).
         
         Output must be valid JSON matching the schema:
         {{
@@ -54,6 +56,7 @@ class PlannerAgent:
                     "duration": int,
                     "narration": "str",
                     "visual_query": "str",
+                    "image_prompt_en": "str",
                     "overlay_text": "str"
                 }}
             ]

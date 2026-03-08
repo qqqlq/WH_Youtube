@@ -35,6 +35,21 @@ class CollectorAgent:
         image_path = self.assets_dir / f"scene_{scene_id:02d}.jpg"
         meta_path = self.assets_dir / f"scene_{scene_id:02d}_meta.json"
 
+        # --- Check for manual override first ---
+        manual_matches = list(self.assets_dir.glob(f"scene_{scene_id:02d}_manual.*"))
+        if manual_matches:
+            print(f"    Skipping automation: manual override found -> {manual_matches[0].name}")
+            self._save_meta(meta_path, {
+                "query": query,
+                "scene_id": scene_id,
+                "provider": "manual_upload",
+                "photographer": "user",
+                "source_url": "",
+                "license": "user_provided",
+                "timestamp": time.time(),
+            })
+            return
+
         result = None
 
         # --- Try each provider in order ---

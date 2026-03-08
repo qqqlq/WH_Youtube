@@ -155,7 +155,13 @@ class EditorEngine:
                 duration = base_duration
 
             # ── Image ──
-            img_path = self.assets_dir / f"scene_{scene_id:02d}.jpg"
+            manual_matches = list(self.assets_dir.glob(f"scene_{scene_id:02d}_manual.*"))
+            if manual_matches:
+                img_path = manual_matches[0]
+                print(f"  Using manual override image: {img_path}")
+            else:
+                img_path = self.assets_dir / f"scene_{scene_id:02d}.jpg"
+
             if img_path.exists():
                 pil_img = self._prepare_image(img_path)
             else:

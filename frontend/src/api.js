@@ -47,3 +47,17 @@ export async function fetchProjectData(slug) {
     if (!res.ok) throw new Error(await res.text());
     return res.json();
 }
+
+export async function uploadImage(title, sceneId, file) {
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('scene_id', sceneId);
+    formData.append('file', file);
+
+    const res = await fetch(`${API_BASE}/api/upload_image`, {
+        method: 'POST',
+        body: formData,
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+}

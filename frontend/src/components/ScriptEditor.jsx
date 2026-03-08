@@ -1,4 +1,9 @@
+import { useState, useRef } from 'react'
+import { uploadImage, API_BASE } from '../api'
+
 export default function ScriptEditor({ script, setScript, onConfirm }) {
+    const fileInputRefs = useRef({})
+    const [uploading, setUploading] = useState({}) // track logic per scene.id
     if (!script) {
         return (
             <div className="empty-state">
@@ -17,6 +22,21 @@ export default function ScriptEditor({ script, setScript, onConfirm }) {
         const updated = [...script.scenes]
         updated[index] = { ...updated[index], [field]: value }
         setScript({ ...script, scenes: updated })
+    }
+
+    const handleUpload = async (sceneIndex, file) => {
+        if (!file) return
+        const scene = script.scenes[sceneIndex]
+
+        try {
+            setUploading(prev => ({ ...prev, [scene.id]: true }))
+            const result = await uploadImage(script.title, scene.id, file)
+            updateScene(sceneIndex, 'manual_image_url', result.url)
+        } catch (err) {
+            alert("画像アップロードに失敗しました: " + err.message)
+        } finally {
+            setUploading(prev => ({ ...prev, [scene.id]: false }))
+        }
     }
 
     const addScene = () => {
@@ -106,6 +126,81 @@ export default function ScriptEditor({ script, setScript, onConfirm }) {
                                     onChange={(e) => updateScene(i, 'visual_query', e.target.value)}
                                     placeholder="e.g. snowy village japan winter"
                                 />
+                            </div>
+
+                            <div className="field-group">
+                                <label className="field-label" style={{ color: 'var(--primary)' }}>✨ 高画質AI画像用プロンプト (英語)</label>
+                                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px', marginTop: '-4px' }}>
+                                    Midjourney等で綺麗な画像を生成するのにお使いください。
+                                </p>
+                                <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                                    <textarea
+                                        className="field-input"
+                                        rows={2}
+                                        value={scene.image_prompt_en || ''}
+                                        onChange={(e) => updateScene(i, 'image_prompt_en', e.target.value)}
+                                        placeholder="Detailed English prompt for high-quality AI images"
+                                        style={{ flex: 1, fontSize: '12px', lineHeight: '1.4' }}
+                                    />
+                                    <button
+                                        className="btn btn-secondary"
+                                        style={{ padding: '8px 12px', fontSize: '13px', whiteSpace: 'nowrap', height: 'fit-content' }}
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(scene.image_prompt_en || '')
+                                            alert('プロンプトをコピーしました！画像生成AIに貼り付けてください。')
+                                        }}
+                                        title="プロンプトをコピー"
+                                    >
+                                        📋 コピー
+                                    </button>
+                                </div>
+
+                                <div style={{ marginTop: '12px', padding: '12px', border: '1px dashed var(--border)', borderRadius: '4px', background: 'var(--bg-secondary)' }}>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 'bold' }}>
+                                        🎨 差し替え用画像のアップロード (任意)
+                                    </label>
+                                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>
+                                        他のAIで生成した画像や自前の写真をここでアップロードすると、自動検索（検索クエリ）より優先して動画に使われます。
+                                    </p>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        style={{ display: 'none' }}
+                                        ref={el => fileInputRefs.current[scene.id] = el}
+                                        onChange={(e) => handleUpload(i, e.target.files[0])}
+                                    />
+                                    <button
+                                        className="btn btn-secondary"
+                                        style={{ fontSize: '13px', padding: '6px 12px' }}
+                                        onClick={() => fileInputRefs.current[scene.id]?.click()}
+                                        disabled={uploading[scene.id]}
+                                    >
+                                        {uploading[scene.id] ? 'アップロード中...' : '📂 画像を選択してアップロード'}
+                                    </button>
+
+                                    {scene.manual_image_url && (
+                                        <div style={{ marginTop: '12px', position: 'relative', display: 'inline-block' }}>
+                                            <img
+                                                src={scene.manual_image_url.startsWith('http') ? scene.manual_image_url : `${API_BASE}${scene.manual_image_url}`}
+                                                alt="Uploaded preview"
+                                                style={{ height: '100px', borderRadius: '4px', objectFit: 'cover', border: '2px solid var(--primary)' }}
+                                            />
+                                            <button
+                                                className="btn btn-icon"
+                                                onClick={() => updateScene(i, 'manual_image_url', '')}
+                                                style={{
+                                                    position: 'absolute', top: '-8px', right: '-8px',
+                                                    background: 'var(--danger)', color: 'white',
+                                                    borderRadius: '50%', width: '24px', height: '24px',
+                                                    fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                                }}
+                                                title="画像を未設定に戻す"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                             <div className="field-group">
                                 <label className="field-label">🗣 ナレーション</label>
