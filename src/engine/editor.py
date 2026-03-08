@@ -246,10 +246,10 @@ class EditorEngine:
 
             img_clip = ImageClip(np.array(pil_img)).with_duration(duration)
 
-            # ── Telop (narration subtitle overlay) ──
-            narration_text = scene.get("narration", "")
-            if narration_text:
-                overlay_arr = self._create_text_overlay(narration_text)
+            # ── Telop (short overlay text) ──
+            telop_text = scene.get("overlay_text", "")
+            if telop_text:
+                overlay_arr = self._create_text_overlay(telop_text)
                 overlay_clip = ImageClip(overlay_arr).with_duration(duration)
                 composite = CompositeVideoClip([img_clip, overlay_clip])
             else:
