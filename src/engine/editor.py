@@ -2,12 +2,13 @@ import os
 import json
 from pathlib import Path
 from moviepy import (
-    ImageClip, AudioFileClip, CompositeVideoClip,
+    ImageClip, AudioFileClip, CompositeVideoClip, VideoClip, VideoFileClip,
     concatenate_videoclips, CompositeAudioClip,
     afx, vfx
 )
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import numpy as np
+import random
 
 
 # ── Canvas constants (YouTube Shorts = 9:16) ──
@@ -153,6 +154,50 @@ class EditorEngine:
         return ImageFont.load_default()
 
     # ------------------------------------------------------------------ #
+    #  Animation
+    # ------------------------------------------------------------------ #
+    def _apply_ken_burns(self, pil_img: Image.Image, duration: float) -> VideoClip:
+        """Applies a random Ken Burns effect (zoom/pan) to a PIL Image."""
+        w, h = pil_img.size
+        # zoom in/out by 10%
+        zoom_factor = 0.10
+        mode = random.choice(["zoom_in", "zoom_out", "pan_left", "pan_right"])
+        
+        def make_frame(t):
+            progress = t / max(duration, 0.1)
+            if progress > 1.0: progress = 1.0
+            
+            if mode == "zoom_in":
+                # scale shrinks from 1.0 to 0.9 (zoom in effect)
+                scale = 1.0 - (zoom_factor * progress)
+                cw, ch = int(w * scale), int(h * scale)
+                x = (w - cw) // 2
+                y = (h - ch) // 2
+            elif mode == "zoom_out":
+                scale = (1.0 - zoom_factor) + (zoom_factor * progress)
+                cw, ch = int(w * scale), int(h * scale)
+                x = (w - cw) // 2
+                y = (h - ch) // 2
+            elif mode == "pan_left":
+                scale = 1.0 - zoom_factor
+                cw, ch = int(w * scale), int(h * scale)
+                max_x = w - cw
+                x = int(max_x * (1.0 - progress))
+                y = (h - ch) // 2
+            else: # pan_right
+                scale = 1.0 - zoom_factor
+                cw, ch = int(w * scale), int(h * scale)
+                max_x = w - cw
+                x = int(max_x * progress)
+                y = (h - ch) // 2
+                
+            crop_box = (x, y, x + cw, y + ch)
+            res_img = pil_img.crop(crop_box).resize((w, h), Image.Resampling.BICUBIC)
+            return np.array(res_img)
+            
+        return VideoClip(make_frame, duration=duration)
+
+    # ------------------------------------------------------------------ #
     #  Text overlay
     # ------------------------------------------------------------------ #
     def _create_text_overlay(self, text: str, size=(CANVAS_W, CANVAS_H)) -> np.ndarray:
@@ -266,28 +311,76 @@ class EditorEngine:
             else:
                 duration = base_duration
 
-            # ── Image ──
+            # ── Image / Video ──
             manual_matches = list(self.assets_dir.glob(f"scene_{scene_id:02d}_manual.*"))
             if manual_matches:
                 img_path = manual_matches[0]
-                print(f"  Using manual override image: {img_path}")
+                print(f"  Using manual override media: {img_path}")
             else:
-                img_path = self.assets_dir / f"scene_{scene_id:02d}.jpg"
+                vid_path = self.assets_dir / f"scene_{scene_id:02d}.mp4"
+                jpg_path = self.assets_dir / f"scene_{scene_id:02d}.jpg"
+                img_path = vid_path if vid_path.exists() else jpg_path
 
-            if img_path.exists():
-                pil_img = self._prepare_image(img_path)
+            if img_path.suffix.lower() == ".mp4":
+                print(f"  Using video asset: {img_path}")
+                vid = VideoFileClip(str(img_path))
+                # Loop if shorter than duration, else subclip
+                if vid.duration and vid.duration < duration:
+                    vid = vid.with_effects([vfx.Loop(duration=duration)])
+                else:
+                    vid = vid.subclipped(0, duration)
+                # Resize and crop to fill CANVAS
+                w, h = vid.size
+                if w / h > CANVAS_W / CANVAS_H: # Wider
+                    vid = vid.resized(height=CANVAS_H)
+                    nw, nh = vid.size
+                    vid = vid.cropped(x_center=nw/2, y_center=nh/2, width=CANVAS_W, height=CANVAS_H)
+                else: # Taller or exact
+                    vid = vid.resized(width=CANVAS_W)
+                    nw, nh = vid.size
+                    vid = vid.cropped(x_center=nw/2, y_center=nh/2, width=CANVAS_W, height=CANVAS_H)
+                
+                # Strip original audio from B-roll
+                img_clip = vid.without_audio()
             else:
-                print(f"  Warning: {img_path} not found, using black placeholder")
-                pil_img = Image.new("RGB", (CANVAS_W, CANVAS_H), color="black")
+                if img_path.exists():
+                    pil_img = self._prepare_image(img_path)
+                else:
+                    print(f"  Warning: {img_path} not found, using black placeholder")
+                    pil_img = Image.new("RGB", (CANVAS_W, CANVAS_H), color="black")
+                img_clip = self._apply_ken_burns(pil_img, duration)
 
-            img_clip = ImageClip(np.array(pil_img)).with_duration(duration)
+            # ── Overlay Image ──
+            overlay_clips = []
+            overlay_keyword = scene.get("overlay_image_keyword", "")
+            if overlay_keyword:
+                overlay_path = self.assets_dir / "overlays" / f"{overlay_keyword}.png"
+                if overlay_path.exists():
+                    try:
+                        ov_img = ImageClip(str(overlay_path)).with_duration(duration)
+                        # Resize width to 450px max
+                        w, h = ov_img.size
+                        if w > 450:
+                            ov_img = ov_img.with_effects([vfx.Resize(width=450)])
+                        # Apply a simple slide-in from bottom effect or just position it
+                        # For now, position at bottom-right (above the telop)
+                        # The telop base is at 68% height. Image height is approx up to 500px.
+                        ov_img = ov_img.with_position(("center", 0.45), relative=True)
+                        overlay_clips.append(ov_img)
+                    except Exception as e:
+                        print(f"  Warning: Failed to load overlay {overlay_path}: {e}")
+                else:
+                    print(f"  Warning: Overlay image '{overlay_path}' not found.")
 
             # ── Telop (short overlay text) ──
             telop_text = scene.get("overlay_text", "")
             if telop_text:
                 overlay_arr = self._create_text_overlay(telop_text)
-                overlay_clip = ImageClip(overlay_arr).with_duration(duration)
-                composite = CompositeVideoClip([img_clip, overlay_clip])
+                telop_clip = ImageClip(overlay_arr).with_duration(duration)
+                overlay_clips.append(telop_clip)
+
+            if overlay_clips:
+                composite = CompositeVideoClip([img_clip] + overlay_clips)
             else:
                 composite = img_clip
 

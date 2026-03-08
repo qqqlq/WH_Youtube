@@ -28,11 +28,13 @@ class CollectorAgent:
     # ------------------------------------------------------------------ #
     #  Public API
     # ------------------------------------------------------------------ #
-    def collect(self, query: str, scene_id: int):
-        """Download an image for *query* and save it as scene_{scene_id:02d}.jpg."""
-        print(f"  Collecting asset for Scene {scene_id}: {query}")
+    def collect(self, query: str, scene_id: int, media_type: str = "image"):
+        """Download an asset for *query* and save it as scene_{scene_id:02d}.(jpg|mp4)."""
+        print(f"  Collecting asset for Scene {scene_id}: {query} (type: {media_type})")
 
-        image_path = self.assets_dir / f"scene_{scene_id:02d}.jpg"
+        # Start with standard paths
+        ext = "mp4" if media_type == "video" else "jpg"
+        image_path = self.assets_dir / f"scene_{scene_id:02d}.{ext}"
         meta_path = self.assets_dir / f"scene_{scene_id:02d}_meta.json"
 
         # --- Check for manual override first ---
@@ -52,12 +54,19 @@ class CollectorAgent:
 
         result = None
 
-        # --- Try each provider in order ---
-        providers = [
-            ("Pexels", self._search_pexels),
-            ("Unsplash", self._search_unsplash),
-            ("Pixabay", self._search_pixabay),
-        ]
+        # --- Try providers based on media type ---
+        providers = []
+        if media_type == "video":
+            providers.append(("PexelsVideo", self._search_pexels_video))
+            # Fallback to image if video fails
+            providers.append(("PexelsImage", self._search_pexels))
+            providers.append(("Unsplash", self._search_unsplash))
+        else:
+            providers = [
+                ("Pexels", self._search_pexels),
+                ("Unsplash", self._search_unsplash),
+                ("Pixabay", self._search_pixabay),
+            ]
 
         for provider_name, search_fn in providers:
             try:
@@ -95,7 +104,11 @@ class CollectorAgent:
         from concurrent.futures import ThreadPoolExecutor, as_completed
 
         def _collect_one(scene):
-            self.collect(scene.get("visual_query", ""), scene.get("id"))
+            self.collect(
+                scene.get("visual_query", ""),
+                scene.get("id"),
+                scene.get("media_type", "image")
+            )
 
         with ThreadPoolExecutor(max_workers=6) as pool:
             futures = [pool.submit(_collect_one, s) for s in scenes]
@@ -129,6 +142,45 @@ class CollectorAgent:
             "photographer": photo.get("photographer", "unknown"),
             "source_url": photo.get("url", ""),
             "license": "Pexels License (free for commercial use)",
+        }
+
+    # ------------------------------------------------------------------ #
+    #  Pexels Video (https://www.pexels.com/api/documentation/#videos-search)
+    # ------------------------------------------------------------------ #
+    def _search_pexels_video(self, query: str) -> dict | None:
+        if not self.pexels_key:
+            return None
+
+        resp = self._http.get(
+            "https://api.pexels.com/videos/search",
+            headers={"Authorization": self.pexels_key},
+            params={"query": query, "per_page": 5, "orientation": "portrait"},
+            timeout=15,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+        videos = data.get("videos", [])
+        if not videos:
+            return None
+
+        # Pick the first video
+        video = videos[0]
+        # Find an HD/SD mobile video file (vertical)
+        files = video.get("video_files", [])
+        if not files:
+            return None
+        
+        # Sort files by height to find a good one (target around 1920 height if possible)
+        files.sort(key=lambda x: abs(x.get("height", 0) - 1920))
+        best_file = files[0]
+
+        return {
+            "download_url": best_file["link"],
+            "photographer": video.get("user", {}).get("name", "unknown"),
+            "source_url": video.get("url", ""),
+            "license": "Pexels License (free for commercial use)",
+            "is_video": True
         }
 
     # ------------------------------------------------------------------ #

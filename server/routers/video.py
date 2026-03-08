@@ -16,9 +16,10 @@ class SceneInput(BaseModel):
     duration: int = 5
     character: str = "zundamon"
     narration: str = ""
-    sound_effect: str = ""
     visual_query: str = ""
+    media_type: str = "image"
     image_prompt_en: str = ""
+    overlay_image_keyword: str = ""
     overlay_text: str = ""
 
 

@@ -14,7 +14,9 @@ class Scene(BaseModel):
     narration: str = Field(..., description="Voiceover narration text for this scene (Japanese)")
     sound_effect: str = Field(default="", description="Sound effect keyword (e.g., 'pop', 'whoosh', 'impact', or empty string if none)")
     visual_query: str = Field(..., description="Basic English search query for stock photos (e.g., 'snowy village')")
+    media_type: str = Field(default="image", description="Preferred media type: 'image' or 'video'")
     image_prompt_en: str = Field(..., description="Detailed English prompt for high-quality AI image generation (Midjourney/Leonardo style) describing lighting, mood, camera angle, and subject. MUST EXPLICITLY avoid generating any text/letters in the image.")
+    overlay_image_keyword: str = Field(default="", description="Optional keyword for a transparent overlay image (e.g., 'shock', 'sweat', 'sparkle', or empty if none)")
     overlay_text: str = Field(..., description="Short, punchy text to display on screen (Japanese). Wrap the most impactful keyword(s) in **double asterisks** for color highlight, e.g., '**異世界転生** まじ卍'")
 
 class VideoScript(BaseModel):
@@ -49,7 +51,7 @@ class PlannerAgent:
            - Provide an overall 'bgm_keyword' chosen EXACTLY from this list: ["lofi", "cinematic", "cyberpunk", "upbeat", "horror", "comical"].
            - Provide an optional 'sound_effect' for each scene chosen EXACTLY from this list: ["pop", "whoosh", "impact", "chime", "drumroll", "glitch", "sword", ""] (use "" if no SE is needed).
         4. **Characters:** Assign 'character' per scene (choose from: 'zundamon', 'metan', 'tsumugi') for dynamic dialogue.
-        5. **Visuals (Stock):** 'visual_query' is a short English keyword for free stock sites.
+        5. **Visuals (Stock):** 'visual_query' is a short English keyword for free stock sites. Set 'media_type' to 'image' or 'video' depending on if a dynamic B-roll video is better for the scene.
         6. **Visuals (AI):** 'image_prompt_en' is a detailed, rich English prompt (e.g., "A moody cinematic wide shot of a glacier calving, 4k, photorealistic, no text, no letters"). It MUST explicitly avoid generating any text/letters in the image.
         7. **Narration:** Engaging, informative, and coherent (Japanese).
         8. **Overlay:** Short, impactful keywords (Japanese).
@@ -66,7 +68,9 @@ class PlannerAgent:
                     "narration": "str",
                     "sound_effect": "str",
                     "visual_query": "str",
+                    "media_type": "str",
                     "image_prompt_en": "str",
+                    "overlay_image_keyword": "str",
                     "overlay_text": "str"
                 }}
             ]

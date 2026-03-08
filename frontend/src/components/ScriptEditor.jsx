@@ -166,6 +166,19 @@ export default function ScriptEditor({ script, setScript, onConfirm }) {
                             </div>
 
                             <div className="field-group">
+                                <label className="field-label">🎞 メディアタイプ (Pexels用)</label>
+                                <select
+                                    className="field-select"
+                                    value={scene.media_type || 'image'}
+                                    onChange={(e) => updateScene(i, 'media_type', e.target.value)}
+                                    style={{ width: '100%', maxWidth: '200px' }}
+                                >
+                                    <option value="image">静止画 (Image)</option>
+                                    <option value="video">動画 (Video B-roll)</option>
+                                </select>
+                            </div>
+
+                            <div className="field-group">
                                 <label className="field-label" style={{ color: 'var(--primary)' }}>✨ 高画質AI画像用プロンプト (英語)</label>
                                 <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px', marginTop: '-4px' }}>
                                     Midjourney等で綺麗な画像を生成するのにお使いください。
@@ -277,7 +290,15 @@ export default function ScriptEditor({ script, setScript, onConfirm }) {
                                     placeholder="このシーンで読み上げるテキスト"
                                 />
                             </div>
-                            <div className="field-group">
+                            <div className="field-group" style={{ background: 'var(--bg-secondary)', padding: '12px', borderRadius: '4px' }}>
+                                <label className="field-label">🎈 オーバーレイ画像クエリ (任意)</label>
+                                <input
+                                    className="field-input"
+                                    value={scene.overlay_image_keyword || ''}
+                                    onChange={(e) => updateScene(i, 'overlay_image_keyword', e.target.value)}
+                                    placeholder="e.g. shock, sweat, sparkle (or empty)"
+                                    style={{ marginBottom: '12px' }}
+                                />
                                 <label className="field-label">💬 テロップ</label>
                                 <input
                                     className="field-input"
