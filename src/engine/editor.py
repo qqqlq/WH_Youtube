@@ -163,10 +163,10 @@ class EditorEngine:
         """
         img = Image.new("RGBA", size, (0, 0, 0, 0))
         draw = ImageDraw.Draw(img)
-        font = self._load_font_bold(72)
+        font = self._load_font_bold(52)
 
-        # Word-wrap for long text (roughly 12 chars per line for 1080px)
-        max_chars_per_line = 12
+        # Word-wrap for long text
+        max_chars_per_line = 16
         lines = []
         while text:
             lines.append(text[:max_chars_per_line])
