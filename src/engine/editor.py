@@ -4,6 +4,7 @@ from pathlib import Path
 from moviepy import (
     ImageClip, AudioFileClip, CompositeVideoClip,
     concatenate_videoclips, CompositeAudioClip,
+    afx, vfx
 )
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import numpy as np
@@ -141,6 +142,10 @@ class EditorEngine:
         print("Starting video rendering...")
         narration_map = narration_map or {}
         clips = []
+        
+        # Audio tracks: [0] BGM, [1] Narration, [2] SE
+        audio_clips = []
+        current_time = 0.0
 
         for scene in script_data.get("scenes", []):
             scene_id = scene.get("id")
@@ -173,10 +178,35 @@ class EditorEngine:
             # Note: overlay text removed — user adds subtitles in DaVinci Resolve
             composite = img_clip
 
-            # ── Narration audio ──
+            # ── Audio Compositing Preparation ──
+            scene_audio_clips = []
+
+            # 1. Narration audio
             if nar_info and nar_info["path"].exists():
                 audio = AudioFileClip(str(nar_info["path"]))
-                composite = composite.with_audio(audio)
+                scene_audio_clips.append(audio.with_start(current_time))
+                composite = composite.with_audio(audio) # Keep it on the clip for safety or mix it later
+            
+            # 2. Sound Effect
+            se_keyword = scene.get("sound_effect", "")
+            if se_keyword:
+                se_path = self.assets_dir / "se" / f"{se_keyword}.mp3"
+                if se_path.exists():
+                    se_audio = AudioFileClip(str(se_path)).with_start(current_time).with_effects([afx.MultiplyVolume(0.8)])
+                    scene_audio_clips.append(se_audio)
+                else:
+                    print(f"  Warning: SE {se_path} not found.")
+
+            audio_clips.extend(scene_audio_clips)
+
+            # ── Transition (Crossfade) ──
+            # Apply a 0.5s crossfade-in to all clips except the first
+            if len(clips) > 0:
+                composite = composite.with_effects([vfx.CrossFadeIn(0.5)])
+                # When crossfading by 0.5s, the actual start time of the next clip overlaps
+                current_time += (duration - 0.5)
+            else:
+                current_time += duration
 
             clips.append(composite)
 
@@ -184,8 +214,26 @@ class EditorEngine:
             print("No clips to render.")
             return None
 
-        # Concatenate all scenes
-        final = concatenate_videoclips(clips, method="compose")
+        # Concatenate all scenes (with overlapping for crossfade)
+        final = concatenate_videoclips(clips, method="compose", padding=-0.5)
+
+        # ── Global BGM ──
+        bgm_keyword = script_data.get("bgm_keyword", "lofi")
+        bgm_path = self.assets_dir / "bgm" / f"{bgm_keyword}.mp3"
+        
+        if bgm_path.exists():
+            print(f"Applying BGM: {bgm_keyword}")
+            bgm = AudioFileClip(str(bgm_path)).with_effects([afx.AudioLoop(duration=final.duration), afx.MultiplyVolume(0.15)])
+            audio_clips.insert(0, bgm)
+        else:
+            print(f"Warning: BGM {bgm_path} not found.")
+
+        # If we collected discrete audio tracks, mix them
+        if audio_clips:
+            # MoviePy 2: final.audio already contains the narration from concatenate_videoclips 
+            # if we attached it to the ImageClips. We overwrite it with a full mix.
+            mixed_audio = CompositeAudioClip(audio_clips)
+            final = final.with_audio(mixed_audio)
 
         output_path = self.output_dir / output_filename
         final.write_videofile(

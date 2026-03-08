@@ -68,13 +68,26 @@ export default function ScriptEditor({ script, setScript, onConfirm }) {
         <div>
             {/* Header */}
             <div className="script-header">
-                <input
-                    className="script-title-input"
-                    value={script.title}
-                    onChange={(e) => updateTitle(e.target.value)}
-                    placeholder="動画タイトル"
-                />
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div>
+                    <input
+                        className="script-title-input"
+                        value={script.title}
+                        onChange={(e) => updateTitle(e.target.value)}
+                        placeholder="動画タイトル"
+                        style={{ display: 'block', marginBottom: '8px', width: '300px' }}
+                    />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>🎵 BGM:</span>
+                        <input
+                            className="field-input"
+                            style={{ width: '150px', padding: '4px 8px' }}
+                            value={script.bgm_keyword || ''}
+                            onChange={(e) => setScript({ ...script, bgm_keyword: e.target.value })}
+                            placeholder="bgm keyword (e.g. lofi)"
+                        />
+                    </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                     <button className="btn btn-secondary" onClick={addScene}>
                         ＋ シーン追加
                     </button>
@@ -204,6 +217,26 @@ export default function ScriptEditor({ script, setScript, onConfirm }) {
                             </div>
                             <div className="field-group">
                                 <label className="field-label">🗣 ナレーション</label>
+                                <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                                    <select
+                                        className="field-input"
+                                        style={{ width: 'auto', flex: 'none' }}
+                                        value={scene.character || 'zundamon'}
+                                        onChange={(e) => updateScene(i, 'character', e.target.value)}
+                                    >
+                                        <option value="zundamon">ずんだもん (ノーマル)</option>
+                                        <option value="metan">四国めたん (ノーマル)</option>
+                                        <option value="tsumugi">春日部つむぎ (ノーマル)</option>
+                                    </select>
+                                    <input
+                                        className="field-input"
+                                        style={{ width: '120px', flex: 'none' }}
+                                        value={scene.sound_effect || ''}
+                                        onChange={(e) => updateScene(i, 'sound_effect', e.target.value)}
+                                        placeholder="SE (e.g. pop)"
+                                        title="効果音キーワード"
+                                    />
+                                </div>
                                 <textarea
                                     className="field-input"
                                     rows={2}

@@ -10,13 +10,17 @@ from dotenv import load_dotenv
 class Scene(BaseModel):
     id: int = Field(..., description="Sequential ID of the scene")
     duration: int = Field(..., description="Duration of the scene in seconds (usually 3-5s)")
+    character: str = Field(default="zundamon", description="Character ID for narration (e.g., 'zundamon', 'metan', 'tsumugi')")
     narration: str = Field(..., description="Voiceover narration text for this scene (Japanese)")
+    sound_effect: str = Field(default="", description="Sound effect keyword (e.g., 'pop', 'whoosh', 'impact', or empty string if none)")
+    sound_effect: str = Field(default="", description="Sound effect keyword (e.g., 'pop', 'whoosh', 'impact', or empty string if none)")
     visual_query: str = Field(..., description="Basic English search query for stock photos (e.g., 'snowy village')")
-    image_prompt_en: str = Field(..., description="Detailed English prompt for high-quality AI image generation (Midjourney/Leonardo style) describing lighting, mood, camera angle, and subject.")
+    image_prompt_en: str = Field(..., description="Detailed English prompt for high-quality AI image generation (Midjourney/Leonardo style) describing lighting, mood, camera angle, and subject. MUST EXPLICITLY avoid generating any text/letters in the image.")
     overlay_text: str = Field(..., description="Short, punchy text to display on screen (Japanese)")
 
 class VideoScript(BaseModel):
     title: str = Field(..., description="Title of the YouTube Short")
+    bgm_keyword: str = Field(default="lofi", description="BGM style keyword (e.g., 'lofi', 'cinematic', 'upbeat')")
     scenes: List[Scene]
 
 class PlannerAgent:
@@ -42,19 +46,24 @@ class PlannerAgent:
         Requirements:
         1. **Total Duration:** Must be approx 60 seconds.
         2. **Structure:** Divide into scenes (approx 3-5 seconds each, total ~10-15 scenes).
-        3. **Visuals (Stock):** 'visual_query' is a short English keyword for free stock sites.
-        4. **Visuals (AI):** 'image_prompt_en' is a detailed, rich English prompt (e.g., "A moody cinematic wide shot of a glacier calving, 4k, photorealistic, dramatic lighting, no text, no letters") for Midjourney/Leonardo. It MUST explicitly avoid generating any text/letters in the image.
-        5. **Narration:** Engaging, informative, and coherent (Japanese).
-        6. **Overlay:** Short, impactful keywords (Japanese).
+        3. **Audio (BGM/SE):** Provide an overall 'bgm_keyword' (e.g., 'lofi', 'cinematic') and optional 'sound_effect' per scene (e.g., 'pop', 'whoosh').
+        4. **Characters:** Assign 'character' per scene (choose from: 'zundamon', 'metan', 'tsumugi') for dynamic dialogue.
+        5. **Visuals (Stock):** 'visual_query' is a short English keyword for free stock sites.
+        6. **Visuals (AI):** 'image_prompt_en' is a detailed, rich English prompt (e.g., "A moody cinematic wide shot of a glacier calving, 4k, photorealistic, no text, no letters"). It MUST explicitly avoid generating any text/letters in the image.
+        7. **Narration:** Engaging, informative, and coherent (Japanese).
+        8. **Overlay:** Short, impactful keywords (Japanese).
         
         Output must be valid JSON matching the schema:
         {{
             "title": "str",
+            "bgm_keyword": "str",
             "scenes": [
                 {{
                     "id": int,
                     "duration": int,
+                    "character": "str",
                     "narration": "str",
+                    "sound_effect": "str",
                     "visual_query": "str",
                     "image_prompt_en": "str",
                     "overlay_text": "str"
