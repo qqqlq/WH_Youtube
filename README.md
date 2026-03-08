@@ -1,44 +1,61 @@
 # WH_Youtube
 
 ## 概要
-Gemini API をオーケストレーターとし、YouTube ショート動画の「企画→素材収集→ナレーション生成→粗編集」を自動化するパイプライン。
-最終的な仕上げ（演出・微調整）は人間が DaVinci Resolve 等で行う「Human-in-the-loop」型ワークフロー。
+Gemini API をオーケストレーターとし、YouTube ショート動画の「企画→素材収集→ナレーション生成→効果音/BGM合成→動画編集」を全自動化するフルスタックWebアプリケーションパイプライン。
+静止画だけでなくKen Burnsエフェクトによるアニメーション、数秒の動画素材（Bロール）、オーバーレイ画像合成、YouTube Shorts風リッチテロップなどを自動生成し、ブラウザ上で直感的に動画をプロデュースできます。
+最終的な仕上げ（演出・微調整）は人間が DaVinci Resolve 等で行う「Human-in-the-loop」型ワークフローを想定しています。
+
+## システムアーキテクチャ
+動画レンダリングという高負荷の処理を実行するため、「フロントエンドはクラウド、バックエンドは自宅サーバー」という分離アーキテクチャを採用しています。
+- **フロントエンド (Vercel)**: React (Vite) で構築されたWeb UI。場所を選ばずどこからでもスマホやPCで動画の企画・編集・生成指示が可能。
+- **バックエンド (自宅ミニPC / Ubuntu Server)**: FastAPIベースのREST API。Cloudflare Tunnelsを用いて安全に外部公開され、AIエージェントによる処理やMoviePyによる動画エンコード、VOICEVOXコンテナ等の数分単位で高負荷がかかる処理を担当します。
 
 ## パイプライン
 
-```
-[Human] テーマ入力
+```text
+[Human] WebUIからテーマ入力・台本修正
+    ↓ (API Request via Cloudflare Tunnel)
+[Planner Agent] Gemini API → 構成台本生成 (動画/静止画の判定、プロンプト、演出指定)
     ↓
-[Planner Agent] Gemini API → 構成台本 (JSON)
+[Collector Agent] Pexels API等 → Bロール動画・フリー素材画像収集
     ↓
-[Collector Agent] Pexels API → フリー素材画像
+[Narrator Engine] VOICEVOX (Docker) → 複数キャラクターによるナレーション音声生成
     ↓
-[Narrator Engine] gTTS → ナレーション音声 (MP3)
+[Editor Engine] MoviePy → Ken Burns効果、BGM/SE、オーバーレイ画像、リッチテロップを合成した動画出力 (MP4)
     ↓
-[Editor Engine] MoviePy → 粗編集動画 (MP4)
-    ↓
-[Human] DaVinci Resolve 等で仕上げ
+[Human] WebUIからプレビュー＆ダウンロード
 ```
 
 ## 技術スタック
 | 項目 | 技術 |
 |------|------|
-| 言語 | Python 3.11+ |
-| 企画 | Gemini API (`google-generativeai`) |
-| 素材収集 | Pexels API (+ Unsplash / Pixabay フォールバック) |
-| TTS | gTTS (Google Text-to-Speech) |
-| 動画編集 | MoviePy v2 + Pillow |
-| データ検証 | Pydantic |
+| 共通言語 | Python 3.11+ (Backend) / Node.js (Frontend) |
+| フロントエンド | React, Vite, CSS |
+| APIサーバー | FastAPI, Pydantic, Uvicorn |
+| AI連携 | Gemini API (`google-genai` 公式SDK) |
+| 素材収集 | Pexels API (画像/動画), Unsplash, Pixabay |
+| 音声合成 (TTS) | VOICEVOX (Docker), gTTS |
+| 動画・画像処理 | MoviePy v2, Pillow, FFmpeg (マルチスレッド最適化) |
+| インフラ・通信 | Cloudflare Tunnels (アクセス制御), Vercel (ホスティング) |
 
 ## ディレクトリ構造
 
-```
+```text
 WH_youtube/
-├── docs/                   # [NEW] 今後のアーキテクチャやロードマップなどの構想ドキュメントを格納
+├── docs/                   # 構想・アーキテクチャ・インフラ設定などのドキュメント群
 ├── server/                 # FastAPI バックエンド
+│   ├── routers/            # APIエンドポイント (video, upload, history等)
+│   └── services/           # バックグラウンドジョブ制御、パイプライン呼び出し
 ├── frontend/               # React (Vite) フロントエンド
-├── src/                    # Python コアロジック (Agents / Engine)
-└── workspace/projects/     # 生成動画の出力フォルダ
+│   ├── src/components/     # UIコンポーネント (ScriptEditor, UIProgressBar等)
+│   └── .env.local          # VITE_API_BASE (Cloudflare TunnelのURL) 等の設定
+├── src/                    # Python コアロジック (Pipeline / Agents / Engine)
+│   ├── agents/             # PlannerAgent (企画), CollectorAgent (素材収集)
+│   └── engine/             # NarratorEngine (音声生成), EditorEngine (動画編集合成)
+└── workspace/              # 動的生成データの出力先
+    ├── assets/             # ダウンロードした画像・動画素材・BGM・効果音
+    │   └── overlays/       # ユーザー手動配置のポン出し用透過PNG画像フォルダ
+    └── projects/           # 各生成プロジェクトごとの台本、音声、出力動画フォルダ
 ```
 
 ## セットアップ
