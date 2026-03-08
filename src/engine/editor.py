@@ -216,17 +216,12 @@ class EditorEngine:
             cx = (size[0] - line_w) // 2
             cy = base_y + line_num * line_height
 
-            # Draw each character with its color
+            # Draw each character with its color (using stroke_width for fast outline)
             cur_x = cx
             for ch in line_text:
                 color = char_colors[char_idx] if char_idx < len(char_colors) else COLOR_NORMAL
-                # Outline
-                for ox in range(-outline_width, outline_width + 1):
-                    for oy in range(-outline_width, outline_width + 1):
-                        if ox * ox + oy * oy <= outline_width * outline_width:
-                            draw.text((cur_x + ox, cy + oy), ch, font=font, fill=COLOR_OUTLINE)
-                # Colored text
-                draw.text((cur_x, cy), ch, font=font, fill=color)
+                draw.text((cur_x, cy), ch, font=font, fill=color,
+                          stroke_width=outline_width, stroke_fill=COLOR_OUTLINE)
                 # Advance x
                 ch_bbox = draw.textbbox((0, 0), ch, font=font)
                 cur_x += ch_bbox[2] - ch_bbox[0]
@@ -356,9 +351,11 @@ class EditorEngine:
         output_path = self.output_dir / output_filename
         final.write_videofile(
             str(output_path),
-            fps=24,
+            fps=15,
             codec="libx264",
             audio_codec="aac",
+            threads=4,
+            preset="fast",
         )
         print(f"Video saved to: {output_path}")
         return str(output_path)

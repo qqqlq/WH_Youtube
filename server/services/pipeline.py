@@ -48,13 +48,11 @@ def run_pipeline(script_data: dict, engine: str = "gtts", job_id: str = None) ->
     scenes = script_data.get("scenes", [])
     total_scenes = len(scenes)
 
-    # ── 1. COLLECT ──
-    progress("素材を収集中...", 5)
+    # ── 1. COLLECT (parallel) ──
+    progress("素材を並列収集中...", 5)
     collector = CollectorAgent(assets_dir=str(assets_dir))
-    for idx, scene in enumerate(scenes):
-        pct = 5 + int((idx / max(total_scenes, 1)) * 25)
-        progress(f"素材を収集中... ({idx+1}/{total_scenes})", pct)
-        collector.collect(scene.get("visual_query", ""), scene.get("id"))
+    collector.collect_all(scenes)
+    progress("素材収集完了", 30)
 
     # ── 2. NARRATE ──
     progress("ナレーション音声を生成中...", 35)

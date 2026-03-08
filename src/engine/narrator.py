@@ -60,22 +60,20 @@ class NarratorEngine:
     def generate_all(self, script_data: dict, force_engine: str = None) -> dict:
         """
         Generate narration audio for each scene using the selected engine.
+        Uses ThreadPoolExecutor for parallel generation.
         Returns a dict mapping scene_id -> {"path": Path, "duration": float}.
         """
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
         results = {}
         use_engine = force_engine or self.engine
-        
-        for scene in script_data.get("scenes", []):
-            scene_id = scene.get("id")
-            text = scene.get("narration", "")
-            if not text:
-                continue
+        scenes = [s for s in script_data.get("scenes", []) if s.get("narration")]
 
-            # VOICEVOX outputs WAV (faster to generate/process), gTTS outputs MP3
+        def _gen_one(scene):
+            scene_id = scene["id"]
+            text = scene["narration"]
             ext = ".wav" if use_engine == "voicevox" else ".mp3"
             audio_path = self.narration_dir / f"scene_{scene_id:02d}{ext}"
-            
-            # Character to Speaker ID resolution
             char_key = scene.get("character", "zundamon")
             speaker_id = self.SPEAKER_MAP.get(char_key, self.SPEAKER_MAP["default"])
 
@@ -84,14 +82,19 @@ class NarratorEngine:
                     duration = self._generate_voicevox(text, audio_path, speaker_id)
                 else:
                     duration = self._generate_gtts(text, audio_path)
-
-                results[scene_id] = {
-                    "path": audio_path,
-                    "duration": duration,
-                }
                 print(f"    ✓ Narration scene {scene_id:02d} ({use_engine}): {duration:.1f}s")
+                return scene_id, {"path": audio_path, "duration": duration}
             except Exception as e:
                 print(f"    ✗ Narration scene {scene_id:02d} ({use_engine}) failed: {e}")
+                return scene_id, None
+
+        # Parallel execution (max 4 workers to avoid overloading VOICEVOX)
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            futures = [pool.submit(_gen_one, s) for s in scenes]
+            for f in as_completed(futures):
+                sid, info = f.result()
+                if info:
+                    results[sid] = info
 
         return results
 

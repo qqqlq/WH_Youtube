@@ -90,6 +90,18 @@ class CollectorAgent:
         self._save_placeholder(image_path, query)
         self._save_meta(meta_path, {"query": query, "error": "all_providers_failed"})
 
+    def collect_all(self, scenes: list):
+        """Collect assets for all scenes in parallel using ThreadPoolExecutor."""
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        def _collect_one(scene):
+            self.collect(scene.get("visual_query", ""), scene.get("id"))
+
+        with ThreadPoolExecutor(max_workers=6) as pool:
+            futures = [pool.submit(_collect_one, s) for s in scenes]
+            for f in as_completed(futures):
+                f.result()  # propagate exceptions
+
     # ------------------------------------------------------------------ #
     #  Pexels  (https://www.pexels.com/api/documentation/)
     # ------------------------------------------------------------------ #
