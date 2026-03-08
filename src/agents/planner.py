@@ -46,7 +46,9 @@ class PlannerAgent:
         Requirements:
         1. **Total Duration:** Must be approx 60 seconds.
         2. **Structure:** Divide into scenes (approx 3-5 seconds each, total ~10-15 scenes).
-        3. **Audio (BGM/SE):** Provide an overall 'bgm_keyword' (e.g., 'lofi', 'cinematic') and optional 'sound_effect' per scene (e.g., 'pop', 'whoosh').
+        3. **Audio (BGM/SE):** 
+           - Provide an overall 'bgm_keyword' chosen EXACTLY from this list: ["lofi", "cinematic", "cyberpunk", "upbeat", "horror", "comical"].
+           - Provide an optional 'sound_effect' for each scene chosen EXACTLY from this list: ["pop", "whoosh", "impact", "chime", "drumroll", "glitch", "sword", ""] (use "" if no SE is needed).
         4. **Characters:** Assign 'character' per scene (choose from: 'zundamon', 'metan', 'tsumugi') for dynamic dialogue.
         5. **Visuals (Stock):** 'visual_query' is a short English keyword for free stock sites.
         6. **Visuals (AI):** 'image_prompt_en' is a detailed, rich English prompt (e.g., "A moody cinematic wide shot of a glacier calving, 4k, photorealistic, no text, no letters"). It MUST explicitly avoid generating any text/letters in the image.

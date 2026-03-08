@@ -78,13 +78,19 @@ export default function ScriptEditor({ script, setScript, onConfirm }) {
                     />
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>🎵 BGM:</span>
-                        <input
+                        <select
                             className="field-input"
                             style={{ width: '150px', padding: '4px 8px' }}
-                            value={script.bgm_keyword || ''}
+                            value={script.bgm_keyword || 'lofi'}
                             onChange={(e) => setScript({ ...script, bgm_keyword: e.target.value })}
-                            placeholder="bgm keyword (e.g. lofi)"
-                        />
+                        >
+                            <option value="lofi">lofi (ゆったり)</option>
+                            <option value="cinematic">cinematic (映画風)</option>
+                            <option value="cyberpunk">cyberpunk (近未来)</option>
+                            <option value="upbeat">upbeat (明るい)</option>
+                            <option value="horror">horror (ホラー)</option>
+                            <option value="comical">comical (コミカル)</option>
+                        </select>
                     </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
@@ -228,14 +234,22 @@ export default function ScriptEditor({ script, setScript, onConfirm }) {
                                         <option value="metan">四国めたん (ノーマル)</option>
                                         <option value="tsumugi">春日部つむぎ (ノーマル)</option>
                                     </select>
-                                    <input
+                                    <select
                                         className="field-input"
                                         style={{ width: '120px', flex: 'none' }}
                                         value={scene.sound_effect || ''}
                                         onChange={(e) => updateScene(i, 'sound_effect', e.target.value)}
-                                        placeholder="SE (e.g. pop)"
-                                        title="効果音キーワード"
-                                    />
+                                        title="効果音(SE)"
+                                    >
+                                        <option value="">(なし)</option>
+                                        <option value="pop">pop (ポンッ)</option>
+                                        <option value="whoosh">whoosh (シュッ)</option>
+                                        <option value="impact">impact (ドーン！)</option>
+                                        <option value="chime">chime (チーン)</option>
+                                        <option value="drumroll">drumroll (ドラム)</option>
+                                        <option value="glitch">glitch (グリッチ)</option>
+                                        <option value="sword">sword (シャキン)</option>
+                                    </select>
                                 </div>
                                 <textarea
                                     className="field-input"
