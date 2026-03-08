@@ -89,7 +89,7 @@ class NarratorEngine:
                 return scene_id, None
 
         # Parallel execution (max 4 workers to avoid overloading VOICEVOX)
-        with ThreadPoolExecutor(max_workers=4) as pool:
+        with ThreadPoolExecutor(max_workers=6) as pool:
             futures = [pool.submit(_gen_one, s) for s in scenes]
             for f in as_completed(futures):
                 sid, info = f.result()

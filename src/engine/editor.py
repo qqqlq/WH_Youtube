@@ -354,7 +354,7 @@ class EditorEngine:
             fps=15,
             codec="libx264",
             audio_codec="aac",
-            threads=4,
+            threads=6,
             preset="fast",
         )
         print(f"Video saved to: {output_path}")
