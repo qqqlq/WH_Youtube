@@ -43,7 +43,7 @@ class PlannerAgent:
         1. **Total Duration:** Must be approx 60 seconds.
         2. **Structure:** Divide into scenes (approx 3-5 seconds each, total ~10-15 scenes).
         3. **Visuals (Stock):** 'visual_query' is a short English keyword for free stock sites.
-        4. **Visuals (AI):: 'image_prompt_en' is a detailed, rich English prompt (e.g., "A moody cinematic wide shot of a glacier calving, 4k, photorealistic, dramatic lighting") for Midjourney/Leonardo.
+        4. **Visuals (AI):** 'image_prompt_en' is a detailed, rich English prompt (e.g., "A moody cinematic wide shot of a glacier calving, 4k, photorealistic, dramatic lighting, no text, no letters") for Midjourney/Leonardo. It MUST explicitly avoid generating any text/letters in the image.
         5. **Narration:** Engaging, informative, and coherent (Japanese).
         6. **Overlay:** Short, impactful keywords (Japanese).
         
